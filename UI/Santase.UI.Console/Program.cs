@@ -33,7 +33,7 @@
             Console.BufferHeight = Console.WindowHeight = 17;
             Console.BufferWidth = Console.WindowWidth = 50;
 
-            IPlayer firstPlayer = new ConsolePlayer(5, 10);
+            IPlayer firstPlayer = new SmartPlayer();
             IPlayer secondPlayer = new SmartPlayer();
             ISantaseGame game = new SantaseGame(firstPlayer, secondPlayer);
             return game;

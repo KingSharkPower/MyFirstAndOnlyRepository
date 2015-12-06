@@ -16,9 +16,9 @@
 
         private readonly OpponentSuitCardsProvider opponentSuitCardsProvider = new OpponentSuitCardsProvider();
 
-        public override string Name => "Smart Player";
+        private ProbabilityCalculator calculator;
 
-        public ProbabilityCalculator calculator;
+        public override string Name => "Smart Player";
 
         public override PlayerAction GetTurn(PlayerTurnContext context)
         {
@@ -49,6 +49,12 @@
 
         private bool CloseGame(PlayerTurnContext context)
         {
+            bool isValid = this.PlayerActionValidator.IsValid(PlayerAction.CloseGame(), context, this.Cards);
+            if (!isValid)
+            {
+                return false;
+            }
+
             List<Card> strongTrumpCards = this.Cards.Where(c => c.Suit == context.TrumpCard.Suit && c.GetValue() >= 10).ToList();
             int points = 0;
             var noTrupmAces = this.Cards.Where(c => c.Suit != context.TrumpCard.Suit && c.GetValue() == 11).ToList();
@@ -137,6 +143,11 @@
 
                     if (probabilityTenToBeTaken <= 0.5)
                     {
+                        if (cardsBiggerThanTen[0] == null || !this.Cards.Contains(cardsBiggerThanTen[0]))
+                        {
+                            cardsBiggerThanTen[0] = this.Cards.First();
+                        }
+
                         return this.PlayCard(cardsBiggerThanTen[0]);
                     }
                 }
@@ -147,7 +158,6 @@
             {
                 if (card.GetValue() < cardToPlay.GetValue() && card.Suit != context.TrumpCard.Suit)
                 {
-
                     if ((card.Type == CardType.King && !this.playedCards.Any(p => p.Type == CardType.Queen && p.Suit == card.Suit))
                         || (card.Type == CardType.Queen && !this.playedCards.Any(p => p.Type == CardType.King && p.Suit == card.Suit)))
                     {
@@ -158,11 +168,22 @@
                 }
             }
 
+            if (cardToPlay == null || !this.Cards.Contains(cardToPlay))
+            {
+                cardToPlay = this.Cards.First();
+            }
+
             return this.PlayCard(cardToPlay);
         }
 
         private PlayerAction ChooseCardWhenPlayingFirstAndRulesApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
+            var action = this.TryToAnnounce20Or40(context, possibleCardsToPlay);
+            if (action != null)
+            {
+                return action;
+            }
+
             // Find card that will surely win the trick
             var opponentHasTrump =
                 this.opponentSuitCardsProvider.GetOpponentCards(
@@ -193,11 +214,6 @@
             }
 
             // Announce 40 or 20 if possible
-            var action = this.TryToAnnounce20Or40(context, possibleCardsToPlay);
-            if (action != null)
-            {
-                return action;
-            }
 
             // Smallest non-trump card
             var cardToPlay =
