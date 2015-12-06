@@ -18,13 +18,10 @@
 
         public override string Name => "Smart Player";
 
+        public ProbabilityCalculator calculator;
+
         public override PlayerAction GetTurn(PlayerTurnContext context)
         {
-            // When possible change the trump card as this is almost always a good move
-            // Changing trump can be non-optimal when:
-            // 1. Current player is planning to close the game and don't want to give additional points to his opponent
-            // 2. The player will close the game and you will give him additional points by giving him bigger trump card instead of 9
-            // 3. Want to confuse the opponent
             if (this.PlayerActionValidator.IsValid(PlayerAction.ChangeTrump(), context, this.Cards))
             {
                 return this.ChangeTrump(context.TrumpCard);
@@ -50,20 +47,53 @@
             this.playedCards.Add(context.SecondPlayedCard);
         }
 
-        // TODO: Improve close game decision
         private bool CloseGame(PlayerTurnContext context)
         {
-            var shouldCloseGame = this.PlayerActionValidator.IsValid(PlayerAction.CloseGame(), context, this.Cards)
-                                  && this.Cards.Count(x => x.Suit == context.TrumpCard.Suit) == 5;
-            if (shouldCloseGame)
+            List<Card> strongTrumpCards = this.Cards.Where(c => c.Suit == context.TrumpCard.Suit && c.GetValue() >= 10).ToList();
+            int points = 0;
+            var noTrupmAces = this.Cards.Where(c => c.Suit != context.TrumpCard.Suit && c.GetValue() == 11).ToList();
+            var noTrumpTens = this.Cards.Where(c => c.Suit != context.TrumpCard.Suit && c.GetValue() == 10).ToList();
+            var powerfullTrumps = this.Cards.Where(c => c.Suit == context.TrumpCard.Suit && c.GetValue() >= 4).ToList();
+            int noTrumpTensCount = 0;
+            if (context.IsFirstPlayerTurn)
             {
-                GlobalStats.GamesClosedByPlayer++;
+                points = context.FirstPlayerRoundPoints;
+            }
+            else
+            {
+                points = context.SecondPlayerRoundPoints;
             }
 
-            return shouldCloseGame;
+            if (noTrumpTens.Count > 0)
+            {
+                foreach (var ten in noTrumpTens)
+                {
+                    if (this.playedCards.Where(p => p.Suit == ten.Suit && p.GetValue() == 11).Count() == 1)
+                    {
+                        noTrumpTensCount++;
+                    }
+                }
+            }
+
+            if ((noTrumpTensCount >= 2 || noTrupmAces.Count >= 2) && powerfullTrumps.Count >= 2 && points > 46)
+            {
+                return true;
+            }
+
+            if (strongTrumpCards.Count() >= 1
+                && (strongTrumpCards[0].GetValue() == 10 || strongTrumpCards[0].GetValue() == 11)
+                && points >= 56)
+            {
+                if (this.playedCards.Where(p => p.GetValue() == 11 && p.Suit == context.TrumpCard.Suit).Count() > 0)
+                {
+                    GlobalStats.GamesClosedByPlayer++;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
-        // TODO: Improve choosing best card to play
         private PlayerAction ChooseCard(PlayerTurnContext context)
         {
             var possibleCardsToPlay = this.PlayerActionValidator.GetPossibleCardsToPlay(context, this.Cards);
@@ -76,63 +106,62 @@
                               : this.ChooseCardWhenPlayingSecondAndRulesDoNotApply(context, possibleCardsToPlay));
         }
 
-        private PlayerAction ChooseCardWhenPlayingFirstAndRulesDoNotApply(
-            PlayerTurnContext context,
-            ICollection<Card> possibleCardsToPlay)
+        private PlayerAction ChooseCardWhenPlayingFirstAndRulesDoNotApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
-            // Announce 40 or 20 if possible
             var action = this.TryToAnnounce20Or40(context, possibleCardsToPlay);
             if (action != null)
             {
                 return action;
             }
 
-            // If the player is close to the win => play trump card which will surely win the trick
-            var opponentBiggestTrumpCard =
-                this.opponentSuitCardsProvider.GetOpponentCards(
-                    this.Cards,
-                    this.playedCards,
-                    context.TrumpCard,
-                    context.TrumpCard.Suit).OrderByDescending(x => x.GetValue()).FirstOrDefault();
-            var myBiggestTrumpCard =
-                possibleCardsToPlay.Where(x => x.Suit == context.TrumpCard.Suit)
-                    .OrderByDescending(x => x.GetValue())
-                    .FirstOrDefault();
-
-            if (context.FirstPlayerRoundPoints >= 66 - myBiggestTrumpCard?.GetValue())
+            int points = 0;
+            int secondPlayerPoints = 0;
+            if (context.IsFirstPlayerTurn)
             {
-                if (opponentBiggestTrumpCard == null
-                    || myBiggestTrumpCard.GetValue() > opponentBiggestTrumpCard.GetValue())
+                points = context.FirstPlayerRoundPoints;
+                secondPlayerPoints = context.SecondPlayerRoundPoints;
+            }
+            else
+            {
+                points = context.SecondPlayerRoundPoints;
+                secondPlayerPoints = context.FirstPlayerRoundPoints;
+            }
+
+            if (points < 33 && secondPlayerPoints >= 50)
+            {
+                List<Card> cardsBiggerThanTen = this.Cards.Where(c => c.Suit == context.TrumpCard.Suit && c.GetValue() >= 10).ToList();
+                if (cardsBiggerThanTen.Count() == 1 && cardsBiggerThanTen[0].GetValue() == 10)
                 {
-                    return this.PlayCard(myBiggestTrumpCard);
+                    this.calculator = new ProbabilityCalculator(context, this.opponentSuitCardsProvider);
+                    double probabilityTenToBeTaken = this.calculator.CalculateProbabilityCardToBeTaken(cardsBiggerThanTen[0], this.Cards, this.playedCards);
+
+                    if (probabilityTenToBeTaken <= 0.5)
+                    {
+                        return this.PlayCard(cardsBiggerThanTen[0]);
+                    }
                 }
             }
 
-            // Smallest non-trump card from the shortest opponent suit
-            var cardToPlay =
-                possibleCardsToPlay.Where(x => x.Suit != context.TrumpCard.Suit)
-                    .OrderBy(
-                        x =>
-                        this.opponentSuitCardsProvider.GetOpponentCards(
-                            this.Cards,
-                            this.playedCards,
-                            context.TrumpCard,
-                            x.Suit).Count)
-                    .ThenBy(x => x.GetValue())
-                    .FirstOrDefault();
-            if (cardToPlay != null)
+            Card cardToPlay = new Card(context.TrumpCard.Suit, CardType.Ace);
+            foreach (var card in possibleCardsToPlay)
             {
-                return this.PlayCard(cardToPlay);
+                if (card.GetValue() < cardToPlay.GetValue() && card.Suit != context.TrumpCard.Suit)
+                {
+
+                    if ((card.Type == CardType.King && !this.playedCards.Any(p => p.Type == CardType.Queen && p.Suit == card.Suit))
+                        || (card.Type == CardType.Queen && !this.playedCards.Any(p => p.Type == CardType.King && p.Suit == card.Suit)))
+                    {
+                        continue;
+                    }
+
+                    cardToPlay = card;
+                }
             }
 
-            // Should never happen
-            cardToPlay = possibleCardsToPlay.OrderBy(x => x.GetValue()).FirstOrDefault();
             return this.PlayCard(cardToPlay);
         }
 
-        private PlayerAction ChooseCardWhenPlayingFirstAndRulesApply(
-            PlayerTurnContext context,
-            ICollection<Card> possibleCardsToPlay)
+        private PlayerAction ChooseCardWhenPlayingFirstAndRulesApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
             // Find card that will surely win the trick
             var opponentHasTrump =
@@ -212,9 +241,7 @@
             return null;
         }
 
-        private PlayerAction ChooseCardWhenPlayingSecondAndRulesDoNotApply(
-            PlayerTurnContext context,
-            ICollection<Card> possibleCardsToPlay)
+        private PlayerAction ChooseCardWhenPlayingSecondAndRulesDoNotApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
             // If bigger card is available => play it
             var biggerCard =
@@ -267,9 +294,7 @@
             return this.PlayCard(smallestCard);
         }
 
-        private PlayerAction ChooseCardWhenPlayingSecondAndRulesApply(
-            PlayerTurnContext context,
-            ICollection<Card> possibleCardsToPlay)
+        private PlayerAction ChooseCardWhenPlayingSecondAndRulesApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
             // If bigger card is available => play it
             var biggerCard =

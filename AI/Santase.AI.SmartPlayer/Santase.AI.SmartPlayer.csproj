@@ -42,6 +42,7 @@
   <ItemGroup>
     <Compile Include="GlobalStats.cs" />
     <Compile Include="Helpers\OpponentSuitCardsProvider.cs" />
+    <Compile Include="ProbabilityCalculator\ProbabilityCalculator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SmartPlayer.cs" />
     <Compile Include="SmartPlayerOld.cs" />
