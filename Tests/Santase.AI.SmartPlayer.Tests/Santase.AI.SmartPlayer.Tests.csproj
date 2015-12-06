@@ -9,7 +9,7 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>Santase.AI.SmartPlayer.Tests</RootNamespace>
     <AssemblyName>Santase.AI.SmartPlayer.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile />
     <NuGetPackageImportStamp>
@@ -56,10 +56,6 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\AI\Santase.AI.DummyPlayer\Santase.AI.DummyPlayer.csproj">
-      <Project>{cc90f6aa-0308-4cf0-95b4-f61b895b62eb}</Project>
-      <Name>Santase.AI.DummyPlayer</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\AI\Santase.AI.SmartPlayer\Santase.AI.SmartPlayer.csproj">
       <Project>{d58bcb77-06d8-4af0-9f9c-13197475deb2}</Project>
       <Name>Santase.AI.SmartPlayer</Name>

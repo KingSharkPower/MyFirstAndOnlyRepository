@@ -3,8 +3,6 @@
     using System;
 
     using NUnit.Framework;
-
-    using Santase.AI.DummyPlayer;
     using Santase.Logic;
     using Santase.Logic.GameMechanics;
 
@@ -32,7 +30,7 @@
             var smartPlayer = new SmartPlayer();
             var smartPlayerWins = 0;
 
-            var dummyPlayer = new DummyPlayer();
+            var dummyPlayer = new SmartPlayer();
 
             var game = new SantaseGame(smartPlayer, dummyPlayer);
 

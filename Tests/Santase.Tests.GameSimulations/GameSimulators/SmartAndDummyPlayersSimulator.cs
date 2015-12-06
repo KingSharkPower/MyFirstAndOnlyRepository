@@ -1,6 +1,5 @@
 ﻿namespace Santase.Tests.GameSimulations.GameSimulators
 {
-    using Santase.AI.DummyPlayer;
     using Santase.AI.SmartPlayer;
     using Santase.Logic.GameMechanics;
     using Santase.Logic.Players;
@@ -11,7 +10,7 @@
         protected override ISantaseGame CreateGame()
         {
             IPlayer firstPlayer = new SmartPlayer();
-            IPlayer secondPlayer = new DummyPlayer();
+            IPlayer secondPlayer = new SmartPlayer();
             ISantaseGame game = new SantaseGame(firstPlayer, secondPlayer); // new ConsoleLogger("[game] "));
             return game;
         }
