@@ -83,11 +83,14 @@
                 }
             }
 
+            // if we have tens and the ace cards have been playd or if we have atleast to aces we close
             if ((noTrumpTensCount >= 2 || noTrupmAces.Count >= 2) && powerfullTrumps.Count >= 2 && points > 46)
             {
+                GlobalStats.GamesClosedByPlayer++;
                 return true;
             }
 
+            // have a strong trump card and a lot of points
             if (strongTrumpCards.Count() >= 1
                 && (strongTrumpCards[0].GetValue() == 10 || strongTrumpCards[0].GetValue() == 11)
                 && points >= 56)
@@ -186,6 +189,7 @@
                 return action;
             }
 
+            // If we have a ten or ace and the other player doesn't have a stronger card of same suit
             var tensAndAces = this.Cards.Where(e => e.GetValue() >= 10).ToList();
             if (tensAndAces.Count != 0)
             {
@@ -199,6 +203,7 @@
                 }
             }
 
+            // check if opponent has queens and kings combo
             for (int i = 0; i <= 3; i++)
             {
                 var oppCards = this.opponentSuitCardsProvider.GetOpponentCards(this.Cards, this.playedCards, context.TrumpCard, suitArr[i]).ToList();
@@ -273,6 +278,7 @@
 
         private PlayerAction ChooseCardWhenPlayingSecondAndRulesDoNotApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
+            // get a bigger card
             var biggerCard =
                 possibleCardsToPlay.Where(
                     x => x.Suit == context.FirstPlayedCard.Suit && x.GetValue() > context.FirstPlayedCard.GetValue())
@@ -280,6 +286,7 @@
                     .FirstOrDefault();
             if (biggerCard != null)
             {
+                // check if bigger card isn't in kin queen combo
                 if ((biggerCard.Type == CardType.Queen && this.playedCards.Contains(new Card(biggerCard.Suit, CardType.King)))
                     || (biggerCard.Type == CardType.King || this.playedCards.Contains(new Card(biggerCard.Suit, CardType.Queen))))
                 {
@@ -287,6 +294,7 @@
                 }
             }
 
+            // check if you have an ace trump
             if (context.FirstPlayedCard.Type == CardType.Ten && context.FirstPlayedCard.Suit == context.TrumpCard.Suit)
             {
                 if (possibleCardsToPlay.Contains(new Card(context.TrumpCard.Suit, CardType.Ace)))
@@ -295,6 +303,7 @@
                 }
             }
 
+            // if we get a ace or ten non trump, get it with a trump card
             if ((context.FirstPlayedCard.Type == CardType.Ace || context.FirstPlayedCard.Type == CardType.Ten) && context.FirstPlayedCard.Suit != context.TrumpCard.Suit)
             {
                 if (possibleCardsToPlay.Contains(new Card(context.TrumpCard.Suit, CardType.Nine)))
@@ -330,6 +339,7 @@
                 }
             }
 
+            // else get smallest
             var smallestCard = possibleCardsToPlay.OrderBy(x => x.GetValue()).FirstOrDefault();
             return this.PlayCard(smallestCard);
         }
