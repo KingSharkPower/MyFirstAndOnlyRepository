@@ -214,18 +214,9 @@
                 }
             }
 
-            // Find card that will surely win the trick
-            var opponentHasTrump =
-                this.opponentSuitCardsProvider.GetOpponentCards(
-                    this.Cards,
-                    this.playedCards,
-                    context.CardsLeftInDeck == 0 ? null : context.TrumpCard,
-                    context.TrumpCard.Suit).Any();
+            var opponentHasTrump = this.opponentSuitCardsProvider.GetOpponentCards(this.Cards,this.playedCards,context.CardsLeftInDeck == 0 ? null : context.TrumpCard,context.TrumpCard.Suit).Any();
 
-            var trumpCard = this.GetCardWhichWillSurelyWinTheTrick(
-                context.TrumpCard.Suit,
-                context.CardsLeftInDeck == 0 ? null : context.TrumpCard,
-                opponentHasTrump);
+            var trumpCard = this.GetCardWhichWillSurelyWinTheTrick(context.TrumpCard.Suit, context.CardsLeftInDeck == 0 ? null : context.TrumpCard, opponentHasTrump);
             if (trumpCard != null)
             {
                 return this.PlayCard(trumpCard);
@@ -233,17 +224,13 @@
 
             foreach (CardSuit suit in Enum.GetValues(typeof(CardSuit)))
             {
-                var possibleCard = this.GetCardWhichWillSurelyWinTheTrick(
-                    suit,
-                    context.CardsLeftInDeck == 0 ? null : context.TrumpCard,
-                    opponentHasTrump);
+                var possibleCard = this.GetCardWhichWillSurelyWinTheTrick(suit, context.CardsLeftInDeck == 0 ? null : context.TrumpCard, opponentHasTrump);
                 if (possibleCard != null)
                 {
                     return this.PlayCard(possibleCard);
                 }
             }
 
-            // Smallest non-trump card
             var cardToPlay =
                 possibleCardsToPlay.Where(x => x.Suit != context.TrumpCard.Suit)
                     .OrderBy(x => x.GetValue())
@@ -253,7 +240,6 @@
                 return this.PlayCard(cardToPlay);
             }
 
-            // Smallest card
             cardToPlay = possibleCardsToPlay.OrderBy(x => x.GetValue()).FirstOrDefault();
             return this.PlayCard(cardToPlay);
         }
@@ -350,18 +336,16 @@
 
         private PlayerAction ChooseCardWhenPlayingSecondAndRulesApply(PlayerTurnContext context, ICollection<Card> possibleCardsToPlay)
         {
-            // If bigger card is available => play it
             var biggerCard =
                 possibleCardsToPlay.Where(
                     x => x.Suit == context.FirstPlayedCard.Suit && x.GetValue() > context.FirstPlayedCard.GetValue())
-                    .OrderByDescending(x => x.GetValue())
+                    .OrderBy(x => x.GetValue())
                     .FirstOrDefault();
             if (biggerCard != null)
             {
                 return this.PlayCard(biggerCard);
             }
 
-            // Play smallest trump card?
             var smallestTrumpCard =
                 possibleCardsToPlay.Where(x => x.Suit == context.TrumpCard.Suit)
                     .OrderBy(x => x.GetValue())
@@ -371,7 +355,6 @@
                 return this.PlayCard(smallestTrumpCard);
             }
 
-            // Smallest card
             var cardToPlay = possibleCardsToPlay.OrderBy(x => x.GetValue()).FirstOrDefault();
             return this.PlayCard(cardToPlay);
         }
