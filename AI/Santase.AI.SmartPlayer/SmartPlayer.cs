@@ -18,6 +18,8 @@
 
         private ProbabilityCalculator calculator;
 
+        private static CardSuit[] suitArr = new CardSuit[] { CardSuit.Club, CardSuit.Diamond, CardSuit.Heart, CardSuit.Spade };
+
         public override string Name => "Smart Player";
 
         public override PlayerAction GetTurn(PlayerTurnContext context)
@@ -184,6 +186,34 @@
                 return action;
             }
 
+            var tensAndAces = this.Cards.Where(e => e.GetValue() >= 10).ToList();
+            if (tensAndAces.Count != 0)
+            {
+                foreach (var card in tensAndAces)
+                {
+                    var cards = this.opponentSuitCardsProvider.GetOpponentCards(this.Cards, this.playedCards, context.TrumpCard, card.Suit);
+                    if (cards != null && cards.Where(e => e.GetValue() > card.GetValue()).ToList().Count != 0)
+                    {
+                        return this.PlayCard(card);
+                    }
+                }
+            }
+
+            for (int i = 0; i <= 3; i++)
+            {
+                var oppCards = this.opponentSuitCardsProvider.GetOpponentCards(this.Cards, this.playedCards, context.TrumpCard, suitArr[i]).ToList();
+                var queensAndKings = oppCards.Where(e => e.GetValue() == 4 || e.GetValue() == 3).ToList();
+                if (oppCards.Count == 0 || queensAndKings.Count == 0) continue;
+                if (oppCards.Count == queensAndKings.Count && queensAndKings.Count == 2)
+                {
+                    var greaterCards = this.Cards.Where(e => e.Suit == context.TrumpCard.Suit).ToList();
+                    if (greaterCards.Count != 0)
+                    {
+                        return this.PlayCard(greaterCards[0]);
+                    }
+                }
+            }
+
             // Find card that will surely win the trick
             var opponentHasTrump =
                 this.opponentSuitCardsProvider.GetOpponentCards(
@@ -212,8 +242,6 @@
                     return this.PlayCard(possibleCard);
                 }
             }
-
-            // Announce 40 or 20 if possible
 
             // Smallest non-trump card
             var cardToPlay =
