@@ -338,21 +338,12 @@
         {
             var biggerCard =
                 possibleCardsToPlay.Where(
-                    x => x.Suit == context.FirstPlayedCard.Suit && x.GetValue() > context.FirstPlayedCard.GetValue())
+                    x => x.Suit == context.FirstPlayedCard.Suit)
                     .OrderBy(x => x.GetValue())
                     .FirstOrDefault();
             if (biggerCard != null)
             {
                 return this.PlayCard(biggerCard);
-            }
-
-            var smallestTrumpCard =
-                possibleCardsToPlay.Where(x => x.Suit == context.TrumpCard.Suit)
-                    .OrderBy(x => x.GetValue())
-                    .FirstOrDefault();
-            if (smallestTrumpCard != null)
-            {
-                return this.PlayCard(smallestTrumpCard);
             }
 
             var cardToPlay = possibleCardsToPlay.OrderBy(x => x.GetValue()).FirstOrDefault();
